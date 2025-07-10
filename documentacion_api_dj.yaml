@@ -180,7 +180,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del administrador
       requestBody:
         required: true
@@ -358,7 +357,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del cliente
       responses:
         '200':
@@ -587,7 +585,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del producto
       responses:
         '200':
@@ -609,7 +606,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del producto
       requestBody:
         required: true
@@ -672,7 +668,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del producto
       responses:
         '200':
@@ -777,7 +772,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del producto
       responses:
         '200':
@@ -879,7 +873,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID de la compra
       responses:
         '200':
@@ -901,7 +894,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID de la compra
       requestBody:
         required: true
@@ -984,7 +976,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del evento
       responses:
         '200':
@@ -1006,7 +997,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del evento
       requestBody:
         required: true
@@ -1048,7 +1038,6 @@ paths:
           required: true
           schema:
             type: string
-            format: uuid
             description: ID del evento
       responses:
         '200':
