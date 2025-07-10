@@ -1,0 +1,1059 @@
+openapi: 3.0.0
+info:
+  title: Backend Tesis DJ - Documentación de API
+  description: API para gestión de ventas de discos vinilos
+  version: 1.0.0
+servers:
+  - url: https://backend-dj-tesis.onrender.com/api 
+    description: Servidor en Render
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+tags:
+  - name: Autenticación Administrador
+    description: Iniciar sesión y recuperar contraseña
+  - name: Perfil Administrador
+    description: Ver y actualizar datos del perfil
+  - name: Clientes
+    description: Registro, inicio de sesión y gestión de clientes
+  - name: Productos
+    description: Gestión de productos (CRUD)
+  - name: Carrito
+    description: Gestionar carrito de compras
+  - name: Compras
+    description: Finalizar y revisar historial de compras
+  - name: Eventos
+    description: Gestión de eventos
+
+paths:
+
+  # ----------------------------- AUTENTICACIÓN ADMINISTRADOR -----------------------------
+  /admin/login:
+    post:
+      summary: Iniciar sesión como administrador
+      tags: [Autenticación Administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+              example:
+                email: admin@example.com
+                password: "123456"
+      responses:
+        '200':
+          description: Sesión iniciada correctamente
+        '401':
+          description: Credenciales incorrectas
+        '404':
+          description: El correo electrónico no está registrado
+
+  /admin/recuperar-password:
+    post:
+      summary: Recuperar contraseña del administrador
+      tags: [Autenticación Administrador]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+              example:
+                email: admin@example.com
+      responses:
+        '200':
+          description: Se ha enviado un correo para restablecer la contraseña
+        '404':
+          description: El correo electrónico no está registrado
+
+  /admin/recuperar-password/{token}:
+    get:
+      summary: Comprobar token para recuperar contraseña
+      tags: [Autenticación Administrador]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            description: Token de recuperación
+      responses:
+        '200':
+          description: Token válido, puedes ingresar una nueva contraseña
+        '401':
+          description: Token inválido o expirado
+
+  /admin/nuevo-password/{token}:
+    post:
+      summary: Establecer nueva contraseña
+      tags: [Autenticación Administrador]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            description: Token de recuperación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: Nueva contraseña
+                confirmpassword:
+                  type: string
+                  description: Confirmación de nueva contraseña
+              example:
+                password: "nueva_contraseña"
+                confirmpassword: "nueva_contraseña"
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente
+        '400':
+          description: Las contraseñas no coinciden
+        '401':
+          description: Token inválido o expirado
+
+  # ----------------------------- PERFIL ADMINISTRADOR -----------------------------
+  /admin/perfil:
+    get:
+      summary: Ver perfil del administrador
+      tags: [Perfil Administrador]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Datos del perfil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  nombre:
+                    type: string
+                  apellido:
+                    type: string
+                  email:
+                    type: string
+                  telefono:
+                    type: string
+                  direccion:
+                    type: string
+                  descripcion:
+                    type: string
+                  _id:
+                    type: string
+                  rol:
+                    type: string
+                    enum:
+                      - Administrador
+        '401':
+          description: Acceso denegado. Debes iniciar sesión como administrador
+
+  /admin/actualizarperfil/{id}:
+    put:
+      summary: Actualizar perfil del administrador
+      tags: [Perfil Administrador]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del administrador
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                apellido:
+                  type: string
+                direccion:
+                  type: string
+                telefono:
+                  type: string
+                email:
+                  type: string
+                descripcion:
+                  type: string
+              example:
+                nombre: Nuevo Nombre
+                apellido: Nuevo Apellido
+                direccion: Nueva Dirección
+                telefono: 987654321
+                email: nuevoemail@example.com
+                descripcion: Descripción actualizada
+      responses:
+        '200':
+          description: Perfil actualizado correctamente
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Debes iniciar sesión como administrador
+        '404':
+          description: Administrador no encontrado
+
+  /admin/actualizarpassword:
+    put:
+      summary: Actualizar contraseña del administrador
+      tags: [Perfil Administrador]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                passwordactual:
+                  type: string
+                  description: Contraseña actual
+                passwordnuevo:
+                  type: string
+                  description: Nueva contraseña
+              example:
+                passwordactual: "contraseña_actual"
+                passwordnuevo: "nueva_contraseña"
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Contraseña actual incorrecta
+
+  # ----------------------------- CLIENTES -----------------------------
+  /cliente/registro:
+    post:
+      summary: Registrar un nuevo cliente
+      tags: [Clientes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nombre:
+                  type: string
+                apellido:
+                  type: string
+                email:
+                  type: string
+                password:
+                  type: string
+                confirmarPassword:
+                  type: string
+                telefono:
+                  type: string
+                provincia:
+                  type: string
+                ciudad:
+                  type: string
+                direccion:
+                  type: string
+              example:
+                nombre: Juan
+                apellido: Pérez
+                email: juan@example.com
+                password: "123456"
+                confirmarPassword: "123456"
+                telefono: 987654321
+                provincia: Pichincha
+                ciudad: Quito
+                direccion: Calle Principal 123
+      responses:
+        '200':
+          description: Cliente registrado con éxito
+        '400':
+          description: Datos inválidos o campos vacíos
+        '409':
+          description: El correo electrónico ya está registrado
+
+  /cliente/login:
+    post:
+      summary: Iniciar sesión como cliente
+      tags: [Clientes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+              example:
+                email: juan@example.com
+                password: "123456"
+      responses:
+        '200':
+          description: Sesión iniciada correctamente
+        '401':
+          description: Credenciales incorrectas
+        '404':
+          description: La cuenta no está confirmada
+
+  /cliente/perfil:
+    get:
+      summary: Ver perfil del cliente
+      tags: [Clientes]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Datos del perfil
+        '401':
+          description: Acceso denegado. Debes iniciar sesión como cliente
+
+  /cliente/listar:
+    get:
+      summary: Listar todos los clientes (solo para administradores)
+      tags: [Clientes]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de clientes
+        '401':
+          description: Acceso denegado. Solo el administrador puede listar clientes
+
+  /cliente/detalle/{id}:
+    get:
+      summary: Detallar un cliente
+      tags: [Clientes]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del cliente
+      responses:
+        '200':
+          description: Detalles del cliente
+        '401':
+          description: Acceso denegado. Solo el administrador puede detallar clientes
+        '404':
+          description: Cliente no encontrado
+
+  /cliente/actualizarpassword:
+    put:
+      summary: Actualizar contraseña del cliente
+      tags: [Clientes]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                passwordactual:
+                  type: string
+                  description: Contraseña actual
+                passwordnuevo:
+                  type: string
+                  description: Nueva contraseña
+              example:
+                passwordactual: "contraseña_actual"
+                passwordnuevo: "nueva_contraseña"
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Contraseña actual incorrecta
+
+  /cliente/recuperar-password:
+    post:
+      summary: Recuperar contraseña del cliente
+      tags: [Clientes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+              example:
+                email: cliente@example.com
+      responses:
+        '200':
+          description: Correo de recuperación enviado
+        '404':
+          description: El correo electrónico no está registrado
+
+  /cliente/recuperar-password/{token}:
+    get:
+      summary: Comprobar token para recuperar contraseña
+      tags: [Clientes]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            description: Token de recuperación
+      responses:
+        '200':
+          description: Token válido, puedes ingresar una nueva contraseña
+        '401':
+          description: Token inválido o expirado
+
+  /cliente/nuevo-password/{token}:
+    post:
+      summary: Establecer nueva contraseña
+      tags: [Clientes]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            description: Token de recuperación
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: Nueva contraseña
+                confirmpassword:
+                  type: string
+                  description: Confirmación de nueva contraseña
+              example:
+                password: "nueva_contraseña"
+                confirmpassword: "nueva_contraseña"
+      responses:
+        '200':
+          description: Contraseña actualizada correctamente
+        '400':
+          description: Las contraseñas no coinciden
+        '401':
+          description: Token inválido o expirado
+
+  /cliente/confirmar/{token}:
+    get:
+      summary: Confirmar cuenta del cliente
+      tags: [Clientes]
+      parameters:
+        - in: path
+          name: token
+          required: true
+          schema:
+            type: string
+            description: Token de confirmación
+      responses:
+        '200':
+          description: Cuenta confirmada exitosamente
+        '400':
+          description: Token inválido o caducado
+
+  /cliente/reenviar-confirmacion:
+    post:
+      summary: Reenviar correo de confirmación
+      tags: [Clientes]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+              example:
+                email: juan@example.com
+      responses:
+        '200':
+          description: Correo de confirmación reenviado
+        '404':
+          description: El correo electrónico no está registrado
+
+  # ----------------------------- PRODUCTOS -----------------------------
+  /producto/registro:
+    post:
+      summary: Registrar un nuevo producto
+      tags: [Productos]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                nombreDisco:
+                  type: string
+                artista:
+                  type: string
+                precio:
+                  type: number
+                genero:
+                  type: string
+                  enum:
+                    - Electrónica
+                    - House
+                    - Tecno
+                    - Rock
+                    - Pop
+                    - Raggae
+                    - Funk
+                    - Hip-Hop
+                    - Latino
+                    - Otro
+                generoPersonalizado:
+                  type: string
+                stock:
+                  type: integer
+                imagen:
+                  type: string
+                  format: binary
+              example:
+                nombreDisco: "Nuevo Vinilo"
+                artista: "Artista Ejemplo"
+                precio: 25.99
+                genero: Electrónica
+                stock: 50
+      responses:
+        '200':
+          description: Producto registrado con éxito
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Solo el administrador puede registrar productos
+
+  /producto/listar:
+    get:
+      summary: Listar todos los productos
+      tags: [Productos]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de productos
+        '401':
+          description: Acceso denegado. Debes iniciar sesión como administrador o cliente
+
+  /producto/detalle/{id}:
+    get:
+      summary: Detallar un producto
+      tags: [Productos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del producto
+      responses:
+        '200':
+          description: Detalles del producto
+        '401':
+          description: Acceso denegado. Debes iniciar sesión como administrador o cliente
+        '404':
+          description: Producto no encontrado
+
+  /producto/actualizar/{id}:
+    put:
+      summary: Actualizar un producto
+      tags: [Productos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del producto
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                nombreDisco:
+                  type: string
+                artista:
+                  type: string
+                precio:
+                  type: number
+                genero:
+                  type: string
+                  enum:
+                    - Electrónica
+                    - House
+                    - Tecno
+                    - Rock
+                    - Pop
+                    - Raggae
+                    - Funk
+                    - Hip-Hop
+                    - Latino
+                    - Otro
+                generoPersonalizado:
+                  type: string
+                stock:
+                  type: integer
+                imagen:
+                  type: string
+                  format: binary
+              example:
+                nombreDisco: "Producto Actualizado"
+                artista: "Nuevo Artista"
+                precio: 30.99
+                genero: Rock
+                stock: 30
+      responses:
+        '200':
+          description: Producto actualizado correctamente
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Solo el administrador puede actualizar productos
+        '404':
+          description: Producto no encontrado
+
+  /producto/eliminar/{id}:
+    delete:
+      summary: Eliminar un producto
+      tags: [Productos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del producto
+      responses:
+        '200':
+          description: Producto eliminado correctamente
+        '401':
+          description: Acceso denegado. Solo el administrador puede eliminar productos
+        '404':
+          description: Producto no encontrado
+
+  # ----------------------------- CARRO DE COMPRAS -----------------------------
+  /carrito/agregar:
+    post:
+      summary: Agregar productos al carrito
+      tags: [Carrito]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productos:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      productoId:
+                        type: string
+                        format: uuid
+                      cantidad:
+                        type: integer
+                        minimum: 1
+              example:
+                productos:
+                  - productoId: "64b5f8e2c7d8e9fa12345678"
+                    cantidad: 2
+      responses:
+        '200':
+          description: Productos agregados al carrito correctamente
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Solo los clientes pueden agregar productos al carrito
+
+  /carrito:
+    get:
+      summary: Obtener carrito del cliente
+      tags: [Carrito]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Detalles del carrito
+        '400':
+          description: El carrito está vacío
+        '401':
+          description: Acceso denegado. Solo los clientes pueden ver su carrito
+
+  /carrito/actualizar:
+    put:
+      summary: Actualizar cantidad de un producto en el carrito
+      tags: [Carrito]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                productoId:
+                  type: string
+                  format: uuid
+                nuevaCantidad:
+                  type: integer
+                  minimum: 1
+              example:
+                productoId: "64b5f8e2c7d8e9fa12345678"
+                nuevaCantidad: 3
+      responses:
+        '200':
+          description: Cantidad actualizada correctamente
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Solo los clientes pueden actualizar cantidades
+        '404':
+          description: Producto no encontrado en el carrito
+
+  /carrito/eliminar/{productoId}:
+    delete:
+      summary: Eliminar un producto del carrito
+      tags: [Carrito]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: productoId
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del producto
+      responses:
+        '200':
+          description: Producto eliminado del carrito
+        '401':
+          description: Acceso denegado. Solo los clientes pueden eliminar productos del carrito
+        '404':
+          description: Producto no encontrado en el carrito
+
+  # ----------------------------- COMPRAS -----------------------------
+  /compras/finalizar:
+    post:
+      summary: Finalizar compra
+      tags: [Compras]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                direccionEnvio:
+                  type: object
+                  properties:
+                    callePrincipal:
+                      type: string
+                    calleSecundaria:
+                      type: string
+                    numeracion:
+                      type: string
+                    referencia:
+                      type: string
+                    provincia:
+                      type: string
+                    ciudad:
+                      type: string
+                zonaEnvio:
+                  type: string
+                  enum:
+                    - quito
+                    - provincia
+                metodoEnvio:
+                  type: string
+                  enum:
+                    - servientrega
+                    - encuentro-publico
+                formaPago:
+                  type: string
+                  enum:
+                    - efectivo
+                    - tarjeta
+                    - transferencia
+              example:
+                direccionEnvio:
+                  callePrincipal: "Calle Principal"
+                  calleSecundaria: "Calle Secundaria"
+                  numeracion: "123"
+                  referencia: "Referencia"
+                  provincia: "Pichincha"
+                  ciudad: "Quito"
+                zonaEnvio: "quito"
+                metodoEnvio: "servientrega"
+                formaPago: "tarjeta"
+      responses:
+        '200':
+          description: Compra realizada con éxito
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Solo los clientes pueden finalizar compras
+        '404':
+          description: No hay productos en el carrito
+
+  /compras/historial:
+    get:
+      summary: Obtener historial de compras del cliente
+      tags: [Compras]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Historial de compras
+        '401':
+          description: Acceso denegado. Solo los clientes pueden ver su historial
+        '404':
+          description: No tienes compras previas
+
+  /compras/detallehistorial/{id}:
+    get:
+      summary: Detalle de una compra
+      tags: [Compras]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID de la compra
+      responses:
+        '200':
+          description: Detalles de la compra
+        '401':
+          description: Acceso denegado. Solo los clientes pueden ver sus compras
+        '404':
+          description: Compra no encontrada
+
+  /compras/estado/{id}:
+    put:
+      summary: Actualizar estado de una compra
+      tags: [Compras]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID de la compra
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                estado:
+                  type: string
+                  enum:
+                    - pendiente
+                    - enviado
+              example:
+                estado: "enviado"
+      responses:
+        '200':
+          description: Estado de la compra actualizado
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Solo el administrador puede actualizar estados
+        '404':
+          description: Compra no encontrada
+
+  # ----------------------------- EVENTOS -----------------------------
+  /evento/registro:
+    post:
+      summary: Registrar un nuevo evento
+      tags: [Eventos]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                nombreEvento:
+                  type: string
+                fechaEvento:
+                  type: string
+                  format: date
+                imagenEvento:
+                  type: string
+                  format: binary
+              example:
+                nombreEvento: "Concierto de Vinilos Clásicos"
+                fechaEvento: "2023-10-15"
+      responses:
+        '200':
+          description: Evento registrado con éxito
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Solo el administrador puede registrar eventos
+
+  /evento/listar:
+    get:
+      summary: Listar todos los eventos
+      tags: [Eventos]
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Lista de eventos
+        '401':
+          description: Acceso denegado. Debes iniciar sesión como administrador o cliente
+
+  /evento/detalle/{id}:
+    get:
+      summary: Detallar un evento
+      tags: [Eventos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del evento
+      responses:
+        '200':
+          description: Detalles del evento
+        '401':
+          description: Acceso denegado. Debes iniciar sesión como administrador o cliente
+        '404':
+          description: Evento no encontrado
+
+  /evento/actualizar/{id}:
+    put:
+      summary: Actualizar un evento
+      tags: [Eventos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del evento
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                nombreEvento:
+                  type: string
+                fechaEvento:
+                  type: string
+                  format: date
+                imagenEvento:
+                  type: string
+                  format: binary
+              example:
+                nombreEvento: "Evento Actualizado"
+                fechaEvento: "2023-10-20"
+      responses:
+        '200':
+          description: Evento actualizado correctamente
+        '400':
+          description: Datos inválidos o campos vacíos
+        '401':
+          description: Acceso denegado. Solo el administrador puede actualizar eventos
+        '404':
+          description: Evento no encontrado
+
+  /evento/eliminar/{id}:
+    delete:
+      summary: Eliminar un evento
+      tags: [Eventos]
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+            format: uuid
+            description: ID del evento
+      responses:
+        '200':
+          description: Evento eliminado correctamente
+        '401':
+          description: Acceso denegado. Solo el administrador puede eliminar eventos
+        '404':
+          description: Evento no encontrado
